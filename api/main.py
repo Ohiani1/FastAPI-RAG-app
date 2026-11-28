@@ -6,14 +6,23 @@ FastAPI service.
          -d '{"question": "How do I make a query parameter optional?"}'
 """
 
+from contextlib import asynccontextmanager
 from typing import Literal
 
 from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 from api.rag import answer_question, to_dict
+from common.db import close_pool
 
-app = FastAPI(title="Ask the FastAPI Docs")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    close_pool()   # close database connections on shutdown
+
+
+app = FastAPI(title="Ask the FastAPI Docs", lifespan=lifespan)
 
 
 class Message(BaseModel):

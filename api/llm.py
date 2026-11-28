@@ -34,8 +34,9 @@ class AnthropicLLM:
         self.client, self.model = Anthropic(), model   # reads ANTHROPIC_API_KEY
 
     def complete(self, system, messages, max_tokens=1024):
+        extra = {"system": system} if system else {}   # empty system prompts are rejected
         resp = self.client.messages.create(
-            model=self.model, system=system, messages=messages, max_tokens=max_tokens,
+            model=self.model, messages=messages, max_tokens=max_tokens, **extra,
         )
         text = "".join(b.text for b in resp.content if b.type == "text")
         return LLMResponse(text, self.model, resp.usage.input_tokens, resp.usage.output_tokens)
@@ -49,19 +50,25 @@ class OpenAILLM:
     def complete(self, system, messages, max_tokens=1024):
         resp = self.client.chat.completions.create(
             model=self.model,
-            messages=[{"role": "system", "content": system}, *messages],
+            messages=([{"role": "system", "content": system}] if system else []) + messages,
             max_completion_tokens=max_tokens,
         )
         return LLMResponse(resp.choices[0].message.content or "", self.model,
                            resp.usage.prompt_tokens, resp.usage.completion_tokens)
 
 
+def make_llm(provider: str, model: str = "") -> LLM:
+    """Build a client for any provider/model (used for the answering LLM and the eval judge)."""
+    cls = {"anthropic": AnthropicLLM, "openai": OpenAILLM}[provider]
+    return cls(model or DEFAULT_MODELS[provider])
+
+
 _llm: LLM | None = None
 
 
 def get_llm() -> LLM:
+    """The LLM that answers user questions, configured by LLM_PROVIDER / LLM_MODEL."""
     global _llm
     if _llm is None:
-        model = LLM_MODEL or DEFAULT_MODELS[LLM_PROVIDER]
-        _llm = {"anthropic": AnthropicLLM, "openai": OpenAILLM}[LLM_PROVIDER](model)
+        _llm = make_llm(LLM_PROVIDER, LLM_MODEL)
     return _llm
