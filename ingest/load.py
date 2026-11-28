@@ -12,11 +12,10 @@ data/fastapi, re-running this only pays for what changed.
 import argparse
 import time
 
+from common.config import EMBED_PRICE_PER_M
 from common.db import apply_schema, connect
 from common.embeddings import embed_texts
 from ingest.chunker import build_chunks
-
-EMBED_PRICE_PER_M = 0.02  # USD per 1M tokens for text-embedding-3-small
 
 
 def main() -> None:

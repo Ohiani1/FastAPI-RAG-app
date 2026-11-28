@@ -12,7 +12,6 @@ Run directly to inspect the output:
 """
 
 from __future__ import annotations
-
 import argparse
 import hashlib
 import json
